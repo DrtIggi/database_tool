@@ -4,8 +4,37 @@ import sqlite3, os, sys
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
 
-from config import csv_file, sqlite_db, table_name, logger
+from config import csv_file, sqlite_db, table_name, logger, address_column_name, extract_address_parts
 
+def add_missing_parts():
+    conn = sqlite3.connect(sqlite_db)
+    cursor = conn.cursor()
+    
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN city TEXT;")
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN street TEXT;")
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN house TEXT;")
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN korpus TEXT;")
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN stroenie TEXT;")
+
+    cursor.execute(f'SELECT rowid, "{address_column_name}" FROM {table_name}')
+    rows = cursor.fetchall()
+
+    for rowid, address in rows:
+        new_ad = extract_address_parts(address)
+        cursor.execute(f'UPDATE {table_name} SET city = ?, street = ?, house = ?, korpus = ?, stroenie = ? WHERE rowid = ?', (new_ad.get('city'),new_ad.get('street'), new_ad.get('house'), new_ad.get('korpus'), new_ad.get('stroenie'), rowid))
+        
+
+    conn.commit()
+    conn.close()
+
+def sort_database():
+    conn = sqlite3.connect(sqlite_db)
+    cursor = conn.cursor()
+
+    cursor.execute(f"CREATE INDEX IF NOT EXISTS idx_first_letter ON {table_name}(street);")
+    
+    conn.commit()
+    conn.close()
 
 def init_db():
 
@@ -21,9 +50,11 @@ def init_db():
     df.to_sql(table_name, conn, if_exists="replace", index=False)
 
     conn.close()
-
+    add_missing_parts()
+    sort_database()
     logger.info(f"CSV file '{csv_file}' successfully converted to SQLite database '{sqlite_db}'.")
     test_db()
+    return
 
 def test_db():
     conn = sqlite3.connect(sqlite_db)
@@ -46,12 +77,11 @@ def test_db():
             for row in rows:
                 logger.info(row)
 
-            # Get column names
             cursor.execute(f"PRAGMA table_info({table_name});")
             columns = cursor.fetchall()
             logger.info(f"Columns in table '{table_name}':")
             for column in columns:
-                logger.info(f"Column: {column[1]}")  # column[1] is the column name
+                logger.info(f"Column: {column[1]}")
             
         else:
             logger.warning(f"The table '{table_name}' exists but is empty.")
