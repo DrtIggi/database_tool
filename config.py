@@ -24,20 +24,49 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def extract_address_parts(address):
-    """Extract city, street, house number, korpus, stroenie, and apartment number from an address string."""
+    """Extracts city, street, house number, korpus, and apartment number from an address string,
+       while normalizing street type names and merging 'строение' into 'корпус'.
+    """
     if not address:
         return {}
-    
-    address = address.lower()
-    
+
+    address = address.lower().strip()
+
+    # Mapping of abbreviations to full names
+    street_type_mapping = {
+    "просп.": "проспект",
+    "пр.": "проспект",  # Added "пр." mapping
+    "ул.": "улица",
+    "ш.": "шоссе",
+    "а.": "аллея",
+    "бульв.": "бульвар",
+     "пер.": "переулок"
+    }
+
+    # Extract street type (abbreviated or full)
+    street_type_match = re.search(
+    r'(проспект|просп\.|пр\.|улица|ул\.|шоссе|ш\.|аллея|а\.|бульвар|бульв\.|переулок|пер\.)',
+    address
+)
+
+    if street_type_match:
+        type_of_street = street_type_mapping.get(street_type_match.group(0), street_type_match.group(0))
+    else:
+        type_of_street = ""
+
+    # Normalize "корпус" and "строение" to just "корпус"
     # Remove unnecessary words
-    address = re.sub(r'\b(город|г\.)\s*', '', address)  
-    address = re.sub(r'\b(проспект|просп\.|улица|ул\.)\s*', '', address)  
-    address = re.sub(r'\b(дом|д\.)\s*', '', address)  
-    address = re.sub(r'\b(корпус|корп\.|к\.)\s*', 'корпус ', address)  
-    address = re.sub(r'\b(стр\.)\s*', 'строение ', address)  
-    address = re.sub(r'\b(квартира|кв\.)\s*', 'квартира ', address)  # Normalize "квартира"
-  
+    address = re.sub(r'\b(город|г\.)\s*', '', address)
+    address = re.sub(r'\b(дом|д\.)\s*', '', address)
+    address = re.sub(r'\b(корпус|корп\.|к\.|строение|стр\.)\s*', 'корпус ', address)
+    address = re.sub(r'\b(квартира|кв\.)\s*', 'квартира ', address)  
+
+    # Remove street type from the street name but keep it separately
+    address = re.sub(
+        r'\b(проспект|просп\.|пр\.|улица|ул\.|шоссе|ш\.|аллея|а\.|бульвар|бульв\.|переулок|пер\.)\s*', 
+        '', 
+        address
+    )
 
     # Split address into parts
     parts = [p.strip() for p in address.split(',')]
@@ -47,21 +76,20 @@ def extract_address_parts(address):
     street = parts[1] if len(parts) > 1 else ''
     house = parts[2] if len(parts) > 2 else ''
 
-    korpus, stroenie, apartment = '', '', ''
-    for part in parts[3:]:  
+    korpus, apartment = '', ''
+    for part in parts[3:]:
         if "корпус" in part:
             korpus = part.replace("корпус", "").strip()
-        elif "строение" in part:
-            stroenie = part.replace("строение", "").strip()
         elif "квартира" in part:
             apartment = part.replace("квартира", "").strip()
-        elif part.isdigit():  # If there's an isolated number, assume it's an apartment
+        else:
             apartment = part
+
     return {
         "city": city,
         "street": street,
+        "type_of_street": type_of_street,  # Returns full street type (e.g., "проспект" instead of "просп.")
         "house": house,
         "korpus": korpus,
-        "stroenie": stroenie,
         "apartment": apartment
     }
