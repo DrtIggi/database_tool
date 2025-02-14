@@ -14,14 +14,14 @@ def add_missing_parts():
     cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN street TEXT;")
     cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN house TEXT;")
     cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN korpus TEXT;")
-    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN stroenie TEXT;")
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN type_of_street TEXT;")
 
-    cursor.execute(f'SELECT rowid, "{address_column_name}" FROM {table_name}')
+    cursor.execute(f'SELECT rowid, {address_column_name} FROM {table_name}')
     rows = cursor.fetchall()
 
     for rowid, address in rows:
         new_ad = extract_address_parts(address)
-        cursor.execute(f'UPDATE {table_name} SET city = ?, street = ?, house = ?, korpus = ?, stroenie = ? WHERE rowid = ?', (new_ad.get('city'),new_ad.get('street'), new_ad.get('house'), new_ad.get('korpus'), new_ad.get('stroenie'), rowid))
+        cursor.execute(f'UPDATE {table_name} SET city = ?, street = ?, house = ?, korpus = ?, type_of_street = ? WHERE rowid = ?', (new_ad.get('city'),new_ad.get('street'), new_ad.get('house'), new_ad.get('korpus'),  new_ad.get('type_of_street'),rowid))
         
 
     conn.commit()
