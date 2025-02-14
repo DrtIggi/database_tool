@@ -5,8 +5,8 @@ services:
     build: .
     container_name: python_app_container
     environment:
-      - APPARTMENT_COLUMN_NAME=14
-      - ADDRESS_COLUMN_NAME=13
+      - APPARTMENT_COLUMN_NAME=legal_flat
+      - ADDRESS_COLUMN_NAME=legal_address
       - DB_NAME=db.csv
       - INPUT_FILE_NAME=input.csv
       - TABLE_NAME=table1
