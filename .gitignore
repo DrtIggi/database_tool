@@ -1,6 +1,6 @@
-input/input.csv
-db/dataset.db
-output/output.csv
+input/*
+db/*
+output/*
 log/logs.log
 __pycache__
 db/db.csv
